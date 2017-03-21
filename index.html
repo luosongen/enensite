@@ -2,11 +2,192 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>恩恩，甜美的微笑</title>
+    <link href="//cdn.bootcss.com/semantic-ui/2.2.9/semantic.min.css" rel="stylesheet">
+    <script src="//cdn.bootcss.com/axios/0.15.3/axios.min.js"></script>
+    <script src="//cdn.bootcss.com/vue/2.2.4/vue.min.js"></script>
 </head>
 <body>
-<h1>
-    恩恩，甜美的微笑!
-</h1>
+<div class="ui container">
+    <br/>
+    <h1 class="ui center aligned header">
+        恩恩，甜美的微笑!
+    </h1>
+    <h4 class="ui horizontal divider header">
+        笑容令你幸福
+    </h4>
+    <h4 class="ui horizontal divider header">
+    </h4>
+    <div class="ui link cards segment" id="img_cards">
+        <div class="card" v-for="v_item in items" @click="show(v_item.id)">
+            <div class="image">
+                <img :src="v_item.img_url">
+            </div>
+            <div class="content">
+                <div class="header">{{v_item.title}}--{{v_item.id}}</div>
+            </div>
+        </div>
+        <div class="ui horizontal divider header"></div>
+        <div class="ui horizontal divider header">
+            <div v-show="previousIndex" class="ui button blue"  @click="previousPage()">上一页</div>
+            <div v-show="nextIndex" class="ui green button" @click="nextPage()">下一页</div>
+        </div>
+        <div class="ui horizontal divider header"></div>
+    </div>
+
+    <h4 class="ui horizontal divider header">
+    </h4>
+    <div class="ui">
+        qq:4412293
+    </div>
+</div>
+<div :class="divClass" id="img_show_div">
+    <div :class="divContentClass">
+        <i class="close icon" @click="close()"></i>
+        <div class="header">
+            {{data.title}}
+        </div>
+        <div class="image content" style="height: 200px">
+            <img class="image" :src="data.img_url"/>
+        </div>
+        <div class="actions">
+            <div v-show="previousId" class="ui button blue"  @click="previous()">上一个</div>
+            <div class="ui button"  @click="close()">关闭</div>
+            <div v-show="nextId" class="ui green button" @click="next()">下一个</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var store = {
+        img_data: [],
+        total: 0,
+        max:3,
+        page_count:0,
+        init: function (v_data) {
+            var v_arr = v_data || [];
+            this.img_data = v_arr;
+            this.total = store.img_data.length;
+            this.page_count = this.total%this.max == 0 ? parseInt(this.total/this.max):parseInt(this.total/this.max)+1;
+        },
+        previousPage:function (v_index) {
+            var v_page_index = v_index -1;
+            return v_page_index  >= 1 ? v_page_index:false;
+        },
+        nextPage:function (v_index) {
+            var v_page_index = v_index + 1;
+            return v_page_index <= this.page_count ? v_page_index:false;
+        },
+        page:function (v_index) {
+            var v_page_index = v_index <= this.page_count ? v_index:this.page_count;
+            var v_start = (v_page_index-1) * this.max ;
+            v_start = v_start > 0 ? v_start:0;
+            var v_end = v_start + this.max;
+            v_end = v_end < this.total ? v_end:this.total;
+            return this.img_data.slice(v_start,v_end);
+
+        },
+        record:function (v_id) {
+            var v_result = {
+                previousId:false,
+                nextId:false,
+                data:{
+                    "img_url": "",
+                    "title": "",
+                    "id": -1
+                }
+            };
+            for(var i=0;i < this.total;i ++){
+                var v_item = this.img_data[i];
+                if(v_item.id == v_id){
+                    v_result.data = v_item;
+                    v_result.previousId = (i - 1 >=0)?this.img_data[i-1].id:false;
+                    v_result.nextId = (i + 1 < this.total)?this.img_data[i+1].id:false;
+                }
+
+            }
+            return v_result;
+
+        },
+    };
+    var img_cards_vue = new Vue({
+        el: '#img_cards',
+        data: {
+            items: [],
+            previousIndex:false,
+            nextIndex:false,
+        },
+        methods:{
+            reload:function (v_index) {
+                this.items = store.page(v_index);
+                this.previousIndex = store.previousPage(v_index);
+                this.nextIndex = store.nextPage(v_index);
+            },
+            previousPage:function () {
+                this.reload(this.previousIndex);
+                console.log("previousPage");
+            },
+            nextPage:function () {
+                this.reload(this.nextIndex);
+                console.log("nextPage");
+            },
+            show:function (v_item_id) {
+                img_show_div_vue.reload(v_item_id);
+            },
+        }
+    });
+    var img_show_div_vue = new Vue({
+        el: '#img_show_div',
+        data: {
+            divClass : "ui disabled dimmer modals page transition visible",
+            divContentClass :"ui disabled fullscreen modal scrolling transition visible",
+            previousId:false,
+            nextId:false,
+            data:{
+                "img_url": "",
+                "title": "",
+                "id": -1
+            }
+        },
+        methods:{
+            reload:function (v_id) {
+                this.close();
+                var v_record = store.record(v_id);
+                this.previousId = v_record.previousId;
+                this.nextId = v_record.nextId;
+                this.data = v_record.data;
+                this.open();
+            },
+            previous:function () {
+                this.reload(this.previousId);
+            },
+            next:function () {
+                this.reload(this.nextId);
+            },
+            close:function () {
+                this.divClass = "ui disabled dimmer modals page transition visible";
+                this.divContentClass = "ui disabled fullscreen modal scrolling transition visible";
+                console.log("close");
+            },
+            open:function () {
+                this.divClass = "ui dimmer modals page transition visible active";
+                this.divContentClass= "ui fullscreen modal scrolling transition visible active";
+                console.log("open");
+            }
+        }
+    });
+    axios.get('/data/img.json',{async: false})
+        .then(function (response) {
+            store.init(response.data || []);
+            img_cards_vue.reload(1);;
+            //img_show_div_vue.reload(1);
+        })
+        .catch(function (error) {
+            console.log(error);
+        });
+
+</script>
 </body>
 </html>
